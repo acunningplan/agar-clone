@@ -13,7 +13,7 @@ const draw = () => {
     context.beginPath();
     context.fillStyle = p.color;
     // Draw a circular arc (specify center, radius, starting and ending angles)
-    context.arc(p.locX, p.locY, 10, 0, Math.PI * 2);
+    context.arc(p.locX, p.locY, p.radius, 0, Math.PI * 2);
     context.arc(200, 200, 0, 0, Math.PI * 2);
     context.fill();
     context.linewidth = 3;

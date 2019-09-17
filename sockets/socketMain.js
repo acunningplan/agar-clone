@@ -13,12 +13,12 @@ let orbs = []; // Contains data for every orb
 let players = []; // Contains data for every player
 
 let settings = {
-  defaultOrbs: 500,
+  defaultOrbs: 5000,
   defaultSpeed: 6,
   defaultSize: 6,
   defaultZoom: 1.5,
-  worldWidth: 500,
-  worldHeight: 500
+  worldWidth: 5000,
+  worldHeight: 5000
 };
 
 const initGame = () => {
@@ -28,6 +28,15 @@ const initGame = () => {
 };
 
 initGame();
+
+// Issue a message at 30 fps (every 33 ms)
+setInterval(() => {
+  if (players.length > 0) {
+    io.to("game").emit("tock", {
+      players
+    });
+  }
+}, 33);
 
 io.sockets.on("connect", socket => {
   let player = {};
@@ -42,8 +51,7 @@ io.sockets.on("connect", socket => {
 
     // Issue a message at 30 fps (every 33 ms)
     setInterval(() => {
-      io.to("game").emit("tock", {
-        players,
+      socket.emit("tickTock", {
         playerX: player.playerData.locX,
         playerY: player.playerData.locY
       });
@@ -66,12 +74,12 @@ io.sockets.on("connect", socket => {
 
       if (
         (player.playerData.locX < 5 && player.playerData.xVector < 0) ||
-        (player.playerData.locX > 500 && xV > 0)
+        (player.playerData.locX > settings.worldWidth && xV > 0)
       ) {
         player.playerData.locY -= speed * yV;
       } else if (
         (player.playerData.locY < 5 && yV > 0) ||
-        (player.playerData.locY > 500 && yV < 0)
+        (player.playerData.locY > settings.worldHeight && yV < 0)
       ) {
         player.playerData.locX += speed * xV;
       } else {
@@ -92,12 +100,58 @@ io.sockets.on("connect", socket => {
             orbIndex: data,
             newOrb: orbs[data]
           };
-          console.log(orbData);
+
+          io.sockets.emit("updateLeaderBoard", getLeaderBoard());
           io.sockets.emit("orbSwitch", orbData);
         })
         .catch(() => {});
+
+      // Player collisions
+      let playerDeath = checkForPlayerCollisions(
+        player.playerData,
+        player.playerConfig,
+        player.socketId
+      );
+
+      playerDeath
+        .then(data => {
+          io.sockets.emit("updateLeaderBoard", getLeaderBoard());
+          io.sockets.emit('playerDeath', data)
+        })
+
+        .catch(() => {});
+    }
+  });
+  socket.on("disconnect", data => {
+    if (player.playerData) {
+      players.forEach((currentPlayer, i) => {
+        if (currentPlayer.uid == player.playerData.uid) {
+          players.splice(i, 1);
+          io.sockets.emit("updateLeaderBoard", getLeaderBoard());
+        }
+      });
+      const updateStats = `
+      UPDATE stats
+        SET highScore = CASE WHEN highScore < ? THEN ? ELSE highScore END,
+        mostOrbs = CASE WHEN mostOrbs < ? THEN ? ELSE mostOrbs END,
+        mostPlayers = CASE WHEN mostPlayers < ? THEN ? ELSE mostPlayers END
+      WHERE username = ?
+      `;
     }
   });
 });
+
+const getLeaderBoard = () => {
+  players.sort((a, b) => {
+    return b.score - a.score;
+  });
+  let leaderBoard = players.map(currentPlayer => {
+    return {
+      name: currentPlayer.name,
+      score: currentPlayer.score
+    };
+  });
+  return leaderBoard;
+};
 
 module.exports = io;
