@@ -1,7 +1,3 @@
-const init = () => {
-  draw();
-};
-
 player.locX = Math.floor(500 * Math.random() + 100);
 player.locY = Math.floor(500 * Math.random() + 100);
 
@@ -13,15 +9,17 @@ const draw = () => {
   const camY = -player.locY + canvas.height / 2;
   context.translate(camX, camY);
 
-  context.beginPath();
-  context.fillStyle = "rgb(255,0,0)";
-  // Draw a circular arc (specify center, radius, starting and ending angles)
-  context.arc(player.locX, player.locY, 10, 0, Math.PI * 2);
-  context.arc(200, 200, 0, 0, Math.PI * 2);
-  context.fill();
-  context.linewidth = 3;
-  context.strokeStyle = "rgb(0, 255, 0)";
-  context.stroke();
+  players.forEach(p => {
+    context.beginPath();
+    context.fillStyle = p.color;
+    // Draw a circular arc (specify center, radius, starting and ending angles)
+    context.arc(p.locX, p.locY, 10, 0, Math.PI * 2);
+    context.arc(200, 200, 0, 0, Math.PI * 2);
+    context.fill();
+    context.linewidth = 3;
+    context.strokeStyle = "rgb(0, 255, 0)";
+    context.stroke();
+  });
 
   orbs.forEach(orb => {
     context.beginPath();
@@ -62,19 +60,8 @@ canvas.addEventListener("mousemove", event => {
     yVector = 1 - (angleDeg + 90) / 90;
   }
 
-  speed = 10;
-  xV = xVector;
-  yV = yVector;
+  player.xVector = xVector;
+  player.yVector = yVector;
 
-  if (
-    (player.locX < 5 && player.xVector < 0) ||
-    (player.locX > 500 && xV > 0)
-  ) {
-    player.locY -= speed * yV;
-  } else if ((player.locY < 5 && yV > 0) || (player.locY > 500 && yV < 0)) {
-    player.locX += speed * xV;
-  } else {
-    player.locX += speed * xV;
-    player.locY -= speed * yV;
-  }
+
 });
